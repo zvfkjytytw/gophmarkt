@@ -126,5 +126,20 @@ func validatePassword(password string) bool {
 		return false
 	}
 
+	for _, l := range password {
+		switch l {
+		case ' ':
+			return false
+		case '(':
+			return false
+		case ')':
+			return false
+		case ':':
+			return false
+		case '!':
+			return false
+		}
+	}
+
 	return true
 }

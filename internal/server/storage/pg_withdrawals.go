@@ -146,5 +146,9 @@ func (s *PGStorage) GetDrawals(login string) ([]*Drawal, error) {
 		drawals = append(drawals, drawal)
 	}
 
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("error scan drawals rows for login %s: %v", login, err)
+	}
+
 	return drawals, nil
 }

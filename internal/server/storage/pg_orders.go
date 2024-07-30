@@ -122,5 +122,9 @@ func (s *PGStorage) GetOrders(login string) ([]*Order, error) {
 		orders = append(orders, order)
 	}
 
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("error scan orders rows for login %s: %v", login, err)
+	}
+
 	return orders, nil
 }

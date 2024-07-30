@@ -68,6 +68,20 @@ func (h *HTTPServer) userRegistration(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	authToken := getAuthToken(registryData.Login)
+
+	h.Lock()
+	h.authUsers[authToken] = &authUser{
+		ttl:   authTTL,
+		login: registryData.Login,
+	}
+	h.Unlock()
+
+	cookie := http.Cookie{Name: cookieAuthToken, Value: authToken, Expires: time.Now().Add(time.Hour)}
+	http.SetCookie(w, &cookie)
+
+	w.Header().Set(headerAuthorization, authToken)
+
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf("User %s is registered", registryData.Login)))
 }
