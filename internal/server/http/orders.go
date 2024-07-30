@@ -28,45 +28,45 @@ func (h *HTTPServer) ordersPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order_id := string(body[:])
-	ok, err = luhn.IsValid(order_id)
+	orderId := string(body[:])
+	ok, err = luhn.IsValid(orderId)
 	if err != nil {
-		h.logger.Sugar().Errorf("failed upload order %s: %v", order_id, err)
+		h.logger.Sugar().Errorf("failed upload order %s: %v", orderId, err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write([]byte("invalid order number format"))
 		return
 	}
 
 	if !ok {
-		h.logger.Sugar().Errorf("failed upload order %s: invalid format", order_id)
+		h.logger.Sugar().Errorf("failed upload order %s: invalid format", orderId)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write([]byte("invalid order number format"))
 		return
 	}
 
-	status, err := h.storage.AddOrder(order_id, login)
+	status, err := h.storage.AddOrder(orderId, login)
 	if err != nil {
 		switch status {
 		case storage.OrderAddBefore:
-			h.logger.Sugar().Errorf("failed upload order %s: %v", order_id, err)
+			h.logger.Sugar().Errorf("failed upload order %s: %v", orderId, err)
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf("order %s is already exists", order_id)))
+			w.Write([]byte(fmt.Sprintf("order %s is already exists", orderId)))
 			return
 		case storage.OrderAddByOther:
-			h.logger.Sugar().Errorf("failed upload order %s: %v", order_id, err)
+			h.logger.Sugar().Errorf("failed upload order %s: %v", orderId, err)
 			w.WriteHeader(http.StatusConflict)
-			w.Write([]byte(fmt.Sprintf("order %s is upload by other", order_id)))
+			w.Write([]byte(fmt.Sprintf("order %s is upload by other", orderId)))
 			return
 		case storage.OrderOperationFailed:
-			h.logger.Sugar().Errorf("failed upload order %s: %v", order_id, err)
+			h.logger.Sugar().Errorf("failed upload order %s: %v", orderId, err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("order %s is not upload", order_id)))
+			w.Write([]byte(fmt.Sprintf("order %s is not upload", orderId)))
 			return
 		}
 	}
 
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte(fmt.Sprintf("Order %s is upload", order_id)))
+	w.Write([]byte(fmt.Sprintf("Order %s is upload", orderId)))
 }
 
 func (h *HTTPServer) ordersGet(w http.ResponseWriter, r *http.Request) {

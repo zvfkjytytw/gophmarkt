@@ -35,15 +35,15 @@ const (
 	OrderOperationFailed
 )
 
-func (s *PGStorage) AddOrder(order_id, login string) (OrderOperationResult, error) {
-	query, args, err := sq.Select("login").From(ordersTable).Where(sq.Eq{"order_id": order_id}).PlaceholderFormat(sq.Dollar).ToSql()
+func (s *PGStorage) AddOrder(oid, login string) (OrderOperationResult, error) {
+	query, args, err := sq.Select("login").From(ordersTable).Where(sq.Eq{"order_id": oid}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return OrderOperationFailed, fmt.Errorf("failed generate select login query for order %s: %v", order_id, err)
+		return OrderOperationFailed, fmt.Errorf("failed generate select login query for order %s: %v", oid, err)
 	}
 
 	row := s.db.QueryRow(query, args...)
 	if row.Err() != nil {
-		return OrderOperationFailed, fmt.Errorf("failed execute select login query for order %s: %v", order_id, err)
+		return OrderOperationFailed, fmt.Errorf("failed execute select login query for order %s: %v", oid, err)
 	}
 
 	var own string
@@ -57,9 +57,9 @@ func (s *PGStorage) AddOrder(order_id, login string) (OrderOperationResult, erro
 
 	now := time.Now().Format(time.DateTime)
 	// now := time.Now().Format(time.RFC3339)
-	query, args, err = sq.Insert(ordersTable).Columns("order_id", "login", "status", "date_upload", "date_update").Values(order_id, login, OrderStatusNew, now, now).PlaceholderFormat(sq.Dollar).ToSql()
+	query, args, err = sq.Insert(ordersTable).Columns("order_id", "login", "status", "date_upload", "date_update").Values(oid, login, OrderStatusNew, now, now).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return OrderOperationFailed, fmt.Errorf("failed generate insert order query for order %s: %v", order_id, err)
+		return OrderOperationFailed, fmt.Errorf("failed generate insert order query for order %s: %v", oid, err)
 	}
 
 	tx, err := s.db.Begin()
@@ -103,15 +103,15 @@ func (s *PGStorage) GetOrders(login string) ([]*Order, error) {
 		return nil, fmt.Errorf("failed execute select orders query for login %s: %v", login, err)
 	}
 	for rows.Next() {
-		var order_id string
+		var oid string
 		var status OrderStatus
 		var upload time.Time
 		var accrual int32
 
-		rows.Scan(&order_id, &status, &upload, &accrual)
+		rows.Scan(&oid, &status, &upload, &accrual)
 
 		order := &Order{
-			Number:     order_id,
+			Number:     oid,
 			Status:     status,
 			UploadedAt: upload,
 		}

@@ -31,10 +31,10 @@ type App struct {
 }
 
 func NewApp(
+	// migrationDir,
 	runAddress,
 	databaseURI,
-	accuralSystem,
-	migrationDir string,
+	accrualSystem string,
 ) (*App, error) {
 	logger, err := InitLogger()
 	if err != nil {
@@ -48,18 +48,23 @@ func NewApp(
 		return nil, fmt.Errorf("failed init storage: %v", err)
 	}
 
-	if err := storage.ApplyMigrations(databaseURI, migrationDir); err != nil {
+	// if err := storage.ApplyMigrations(databaseURI, migrationDir); err != nil {
+	// 	logger.Sugar().Errorf("failed init DB: %v", err)
+	// 	return nil, err
+	// }
+
+	if err := pgStorage.ApplyMigrations(); err != nil {
 		logger.Sugar().Errorf("failed init DB: %v", err)
-		return nil, err
+		// return nil, err
 	}
 
-	http_server, err := server.NewHTTPServer(runAddress, logger, pgStorage)
+	httpServer, err := server.NewHTTPServer(runAddress, logger, pgStorage)
 	if err != nil {
 		logger.Sugar().Errorf("failed init HTTP server: %v", err)
 		return nil, err
 	}
 
-	services = append(services, http_server)
+	services = append(services, httpServer)
 
 	return &App{
 		services: services,
@@ -90,7 +95,7 @@ func NewAppFromConfig(config *AppConfig) (*App, error) {
 		return nil, err
 	}
 
-	http_server, err := server.NewHTTPServerFromConfig(
+	httpServer, err := server.NewHTTPServerFromConfig(
 		config.HTTPConfig,
 		logger,
 		pgStorage,
@@ -99,7 +104,7 @@ func NewAppFromConfig(config *AppConfig) (*App, error) {
 		return nil, fmt.Errorf("failed init HTTP server: %v", err)
 	}
 
-	services = append(services, http_server)
+	services = append(services, httpServer)
 
 	return &App{
 		services: services,

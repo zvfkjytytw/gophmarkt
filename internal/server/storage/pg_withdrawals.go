@@ -28,31 +28,31 @@ const (
 	DrawalOperationFailed
 )
 
-func (s *PGStorage) AddDrawal(order_id, login string, count int32) (DrawalOperationResult, error) {
-	query, args, err := sq.Select("login").From(drawalTable).Where(sq.Eq{"order_id": order_id}).PlaceholderFormat(sq.Dollar).ToSql()
+func (s *PGStorage) AddDrawal(oid, login string, count int32) (DrawalOperationResult, error) {
+	query, args, err := sq.Select("login").From(drawalTable).Where(sq.Eq{"order_id": oid}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return DrawalOperationFailed, fmt.Errorf("failed generate select drawal login query for order %s: %v", order_id, err)
+		return DrawalOperationFailed, fmt.Errorf("failed generate select drawal login query for order %s: %v", oid, err)
 	}
 
 	row := s.db.QueryRow(query, args...)
 	if row.Err() != nil {
-		return DrawalOperationFailed, fmt.Errorf("failed execute select drawal login query for order %s: %v", order_id, err)
+		return DrawalOperationFailed, fmt.Errorf("failed execute select drawal login query for order %s: %v", oid, err)
 	}
 
 	var own string
 	if row.Scan(&own) != sql.ErrNoRows {
 		if own == login {
-			return DrawalAddBefore, fmt.Errorf("Drawal by order %s already upload", order_id)
+			return DrawalAddBefore, fmt.Errorf("Drawal by order %s already upload", oid)
 		}
 
-		return DrawalAddByOther, fmt.Errorf("Drawal by order %s upload by other", order_id)
+		return DrawalAddByOther, fmt.Errorf("Drawal by order %s upload by other", oid)
 	}
 
 	now := time.Now().Format(time.DateTime)
 	// now := time.Now().Format(time.RFC3339)
-	query, args, err = sq.Insert(drawalTable).Columns("order_id", "login", "count", "offdate").Values(order_id, login, count, now).PlaceholderFormat(sq.Dollar).ToSql()
+	query, args, err = sq.Insert(drawalTable).Columns("order_id", "login", "count", "offdate").Values(oid, login, count, now).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return DrawalOperationFailed, fmt.Errorf("failed generate insert order query for order %s: %v", order_id, err)
+		return DrawalOperationFailed, fmt.Errorf("failed generate insert order query for order %s: %v", oid, err)
 	}
 
 	tx, err := s.db.Begin()
@@ -131,14 +131,14 @@ func (s *PGStorage) GetDrawals(login string) ([]*Drawal, error) {
 		return nil, fmt.Errorf("failed execute select drawals query for login %s: %v", login, err)
 	}
 	for rows.Next() {
-		var order_id string
+		var oid string
 		var sum int32
 		var processedAt time.Time
 
-		rows.Scan(&order_id, &sum, &processedAt)
+		rows.Scan(&oid, &sum, &processedAt)
 
 		drawal := &Drawal{
-			Order:       order_id,
+			Order:       oid,
 			Sum:         sum,
 			ProcessedAt: processedAt,
 		}

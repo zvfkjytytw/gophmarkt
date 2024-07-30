@@ -52,10 +52,10 @@ func main() {
 	}
 
 	app, err := serverApp.NewApp(
+		// migrationDir,
 		runAddress,
 		databaseURI,
 		accrualSystem,
-		migrationDir,
 	)
 	if err != nil {
 		panic(err)
