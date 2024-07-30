@@ -25,9 +25,9 @@ CREATE UNIQUE INDEX idx_gophmarkt_users ON gophmarkt.users (login);
 -- BALANCE
 -- Table of balance
 CREATE TABLE IF NOT EXISTS gophmarkt.balance (
-    login     text not null,    -- username
-    current   integer not null, -- accumulated points
-    withdrawn integer           -- drawn points
+    login     text not null, -- username
+    current   real not null, -- accumulated points
+    withdrawn real           -- drawn points
 );
 
 -- Set the user as the defining one
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS gophmarkt.orders (
     order_id    text not null,                   -- order id 
     login       text not null,                   -- username
     status      gophmarkt.order_status not null, -- order status
-    accrual     integer,                         -- order points
+    accrual     real,                            -- order points
     date_upload timestamp not null,              -- order upload date
     date_update timestamp not null               -- order last update date
 );
@@ -55,7 +55,7 @@ ALTER TABLE gophmarkt.orders ADD PRIMARY KEY (order_id);
 CREATE TABLE IF NOT EXISTS gophmarkt.withdrawals (
     order_id text not null,     -- order id 
     login    text not null,     -- username
-    count    integer not null,  -- deducted points
+    count    real not null,     -- deducted points
     offdate  timestamp not null -- date of debiting
 );
 

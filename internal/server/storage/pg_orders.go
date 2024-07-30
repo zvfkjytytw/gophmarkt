@@ -15,7 +15,7 @@ type (
 	Order                struct {
 		Number     string      `json:"number"`
 		Status     OrderStatus `json:"status"`
-		Accrual    int32       `json:"accrual,omitempty"`
+		Accrual    float32     `json:"accrual,omitempty"`
 		UploadedAt time.Time   `json:"uploaded_at"`
 	}
 )
@@ -106,7 +106,7 @@ func (s *PGStorage) GetOrders(login string) ([]*Order, error) {
 		var oid string
 		var status OrderStatus
 		var upload time.Time
-		var accrual int32
+		var accrual float32
 
 		rows.Scan(&oid, &status, &upload, &accrual)
 
