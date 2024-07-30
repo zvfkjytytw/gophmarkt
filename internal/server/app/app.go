@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
+	accrual "github.com/zvfkjytytw/gophmarkt/internal/server/accrual"
 	server "github.com/zvfkjytytw/gophmarkt/internal/server/http"
 	storage "github.com/zvfkjytytw/gophmarkt/internal/server/storage"
 )
@@ -31,7 +32,6 @@ type App struct {
 }
 
 func NewApp(
-	// migrationDir,
 	runAddress,
 	databaseURI,
 	accrualSystem string,
@@ -48,11 +48,6 @@ func NewApp(
 		return nil, fmt.Errorf("failed init storage: %v", err)
 	}
 
-	// if err := storage.ApplyMigrations(databaseURI, migrationDir); err != nil {
-	// 	logger.Sugar().Errorf("failed init DB: %v", err)
-	// 	return nil, err
-	// }
-
 	if err := pgStorage.ApplyMigrations(); err != nil {
 		logger.Sugar().Errorf("failed init DB: %v", err)
 		// return nil, err
@@ -63,8 +58,14 @@ func NewApp(
 		logger.Sugar().Errorf("failed init HTTP server: %v", err)
 		return nil, err
 	}
-
 	services = append(services, httpServer)
+
+	accrualService, err := accrual.NewAccrual(accrualSystem, pgStorage, logger)
+	if err != nil {
+		logger.Sugar().Errorf("failed init accrual service: %v", err)
+		return nil, err
+	}
+	services = append(services, accrualService)
 
 	return &App{
 		services: services,

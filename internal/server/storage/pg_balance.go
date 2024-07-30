@@ -8,16 +8,16 @@ import (
 )
 
 type Balance struct {
-	Current   float32 `json:"current"`
-	Withdrawn float32 `json:"withdrawn,omitempty"`
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn,omitempty"`
 }
 
 const (
 	balanceTable = "gophmarkt.balance"
-	startBalance = 100
+	startBalance = 0
 )
 
-func (s *PGStorage) AddBalance(login string, count float32) error {
+func (s *PGStorage) AddBalance(login string, count float64) error {
 	query, args, err := sq.Select("current").From(balanceTable).Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return fmt.Errorf("failed generate select balance query for login %s: %v", login, err)
@@ -28,7 +28,7 @@ func (s *PGStorage) AddBalance(login string, count float32) error {
 		return fmt.Errorf("failed execute select balance query for login %s: %v", login, err)
 	}
 
-	var current float32
+	var current float64
 	if row.Scan(&current) == sql.ErrNoRows {
 		query, args, err = sq.Insert(balanceTable).Columns("login", "current", "withdrawn").Values(login, count, 0).PlaceholderFormat(sq.Dollar).ToSql()
 		if err != nil {
@@ -54,7 +54,7 @@ func (s *PGStorage) AddBalance(login string, count float32) error {
 	return nil
 }
 
-func (s *PGStorage) DrawnBalance(login string, count float32) error {
+func (s *PGStorage) DrawnBalance(login string, count float64) error {
 	query, args, err := sq.Select("current", "withdrawn").From(balanceTable).Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return fmt.Errorf("failed generate select balance with drawn query for login %s: %v", login, err)
@@ -65,7 +65,7 @@ func (s *PGStorage) DrawnBalance(login string, count float32) error {
 		return fmt.Errorf("failed execute select balance with drawn query for login %s: %v", login, err)
 	}
 
-	var current, withdrawn float32
+	var current, withdrawn float64
 	if row.Scan(&current, &withdrawn) == sql.ErrNoRows {
 		return fmt.Errorf("no balance for login %s: %v", login, err)
 	}
@@ -94,7 +94,7 @@ func (s *PGStorage) GetBalance(login string) (*Balance, error) {
 		return nil, fmt.Errorf("failed execute select balance with drawn query for login %s: %v", login, err)
 	}
 
-	var current, withdrawn float32
+	var current, withdrawn float64
 	if row.Scan(&current, &withdrawn) == sql.ErrNoRows {
 		return nil, fmt.Errorf("no balance for login %s: %v", login, err)
 	}

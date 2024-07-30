@@ -12,6 +12,16 @@ import (
 )
 
 var initQuerys = []string{
+	// DROP
+	`DROP TABLE IF EXISTS gophmarkt.withdrawals;`,
+	`DROP TABLE IF EXISTS gophmarkt.orders;`,
+	`DROP INDEX IF EXISTS idx_gophmarkt_balance;`,
+	`DROP TABLE IF EXISTS gophmarkt.balance;`,
+	`DROP INDEX IF EXISTS idx_gophmarkt_users;`,
+	`DROP TABLE IF EXISTS gophmarkt.users;`,
+	`DROP TYPE IF EXISTS gophmarkt.order_status;`,
+    `DROP SCHEMA IF EXISTS gophmarkt;`,
+	//CREATE
 	`CREATE SCHEMA IF NOT EXISTS gophmarkt;`,
 	// Type of the order statuses
 	`CREATE TYPE gophmarkt.order_status AS ENUM (
@@ -33,9 +43,9 @@ var initQuerys = []string{
 	// BALANCE
 	// Table of balance
 	`CREATE TABLE IF NOT EXISTS gophmarkt.balance (
-		login     text not null, -- username
-		current   real not null, -- accumulated points
-		withdrawn real           -- drawn points
+		login     text not null,             -- username
+		current   double precision not null, -- accumulated points
+		withdrawn double precision           -- drawn points
 	);`,
 	// Set the user as the defining one
 	`ALTER TABLE gophmarkt.balance ADD PRIMARY KEY (login);`,
@@ -47,7 +57,7 @@ var initQuerys = []string{
 		order_id    text not null,                   -- order id 
 		login       text not null,                   -- username
 		status      gophmarkt.order_status not null, -- order status
-		accrual     real,                            -- order points
+		accrual     double precision,                -- order points
 		date_upload timestamp not null,              -- order upload date
 		date_update timestamp not null               -- order last update date
 	);`,
@@ -56,10 +66,10 @@ var initQuerys = []string{
 	// WITHDRAWALS
 	// Table of withdrawals
 	`CREATE TABLE IF NOT EXISTS gophmarkt.withdrawals (
-		order_id text not null,     -- order id 
-		login    text not null,     -- username
-		count    real not null,     -- deducted points
-		offdate  timestamp not null -- date of debiting
+		order_id text not null,             -- order id 
+		login    text not null,             -- username
+		count    double precision not null, -- deducted points
+		offdate  timestamp not null         -- date of debiting
 	);`,
 	`ALTER TABLE gophmarkt.withdrawals ADD PRIMARY KEY (order_id);`,
 }

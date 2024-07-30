@@ -12,7 +12,7 @@ type (
 	DrawalOperationResult int
 	Drawal                struct {
 		Order       string    `json:"order"`
-		Sum         float32   `json:"sum"`
+		Sum         float64   `json:"sum"`
 		ProcessedAt time.Time `json:"processed_at,omitempty"`
 	}
 )
@@ -28,7 +28,7 @@ const (
 	DrawalOperationFailed
 )
 
-func (s *PGStorage) AddDrawal(oid, login string, count float32) (DrawalOperationResult, error) {
+func (s *PGStorage) AddDrawal(oid, login string, count float64) (DrawalOperationResult, error) {
 	query, args, err := sq.Select("login").From(drawalTable).Where(sq.Eq{"order_id": oid}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return DrawalOperationFailed, fmt.Errorf("failed generate select drawal login query for order %s: %v", oid, err)
@@ -89,7 +89,7 @@ func (s *PGStorage) AddDrawal(oid, login string, count float32) (DrawalOperation
 		return DrawalOperationFailed, fmt.Errorf("failed execute select balance with drawn query for login %s: %v", login, err)
 	}
 
-	var current, withdrawn float32
+	var current, withdrawn float64
 	if row.Scan(&current, &withdrawn) == sql.ErrNoRows {
 		tx.Rollback()
 		return DrawalOperationFailed, fmt.Errorf("no balance for login %s: %v", login, err)
@@ -132,7 +132,7 @@ func (s *PGStorage) GetDrawals(login string) ([]*Drawal, error) {
 	}
 	for rows.Next() {
 		var oid string
-		var sum float32
+		var sum float64
 		var processedAt time.Time
 
 		rows.Scan(&oid, &sum, &processedAt)

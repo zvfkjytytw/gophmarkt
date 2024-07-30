@@ -52,7 +52,6 @@ func main() {
 	}
 
 	app, err := serverApp.NewApp(
-		// migrationDir,
 		runAddress,
 		databaseURI,
 		accrualSystem,
