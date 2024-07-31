@@ -194,7 +194,7 @@ func (s *PGStorage) UpdateOrder(order *Order) error {
 
 	if order.Status == OrderStatusProcessed {
 		query, args, err = sq.Update(ordersTable).
-			Set("status", order.Status).Set("accural", order.Accrual).Set("date_update", order.UploadedAt).
+			Set("status", order.Status).Set("accrual", order.Accrual).Set("date_update", order.UploadedAt).
 			Where(sq.Eq{"order_id": order.Number}).PlaceholderFormat(sq.Dollar).ToSql()
 		if err != nil {
 			return fmt.Errorf("failed generate update query for order %s: %v", order.Number, err)

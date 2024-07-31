@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -117,18 +118,13 @@ func (a *Accrual) checkOrder(order *storage.Order) error {
 	}
 	defer resp.Body.Close()
 
-	var buf []byte
-	n, err := resp.Body.Read(buf)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed read accrual data for order %s: %v", order.Number, err)
 	}
 
-	if n == 0 {
-		return fmt.Errorf("no accrual data for order %s", order.Number)
-	}
-
 	var accrualOrder AccrualOrder
-	err = json.Unmarshal(buf, &accrualOrder)
+	err = json.Unmarshal(bodyBytes, &accrualOrder)
 	if err != nil {
 		return fmt.Errorf("failed unmarshal accrual data for order %s: %v", order.Number, err)
 	}
