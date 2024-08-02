@@ -7,6 +7,6 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     volumes:
-      - ./data:/Users/lix0/garage/volumes/postgres/data
+      - ./data:/tmp
     ports:
       - 5432:5432
