@@ -19,6 +19,7 @@ func (h *HTTPServer) newRouter() chi.Router {
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
+	r.Use(Logging(h.logger))
 
 	// ping handler.
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
