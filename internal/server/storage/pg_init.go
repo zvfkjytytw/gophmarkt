@@ -28,7 +28,7 @@ var initQuerys = []string{
 		'NEW',
 		'PROCESSING',
 		'INVALID',
-		'PROCEESED'
+		'PROCESSED'
 	);`,
 	// USERS
 	// Table of users
