@@ -14,7 +14,8 @@ type Balance struct {
 
 const (
 	balanceTable = "gophmarkt.balance"
-	startBalance = 729.98
+	// startBalance = 729.98
+	startBalance = 0
 )
 
 func (s *PGStorage) AddBalance(login string, count float64) error {
