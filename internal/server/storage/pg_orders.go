@@ -26,7 +26,7 @@ const (
 	OrderStatusNew        OrderStatus = "NEW"
 	OrderStatusProcessing OrderStatus = "PROCESSING"
 	OrderStatusInvalid    OrderStatus = "INVALID"
-	OrderStatusProcessed  OrderStatus = "PROCEESED"
+	OrderStatusProcessed  OrderStatus = "PROCESSED"
 
 	OrderAddSuccess OrderOperationResult = iota
 	OrderAddBefore
