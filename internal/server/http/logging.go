@@ -60,6 +60,8 @@ func Logging(logger *zap.Logger) func(http.Handler) http.Handler {
 
 			next.ServeHTTP(lw, r)
 
+			responseContentType := lw.Header()["Content-Type"][0]
+
 			rDuration := time.Since(start).Nanoseconds()
 			logger.Info(
 				fmt.Sprintf("Request %v", rID),
@@ -70,6 +72,7 @@ func Logging(logger *zap.Logger) func(http.Handler) http.Handler {
 				zap.String("Duration", fmt.Sprintf("%d ns", rDuration)),
 				zap.Int("Response Code", lw.responseData.statusCode),
 				zap.Int("Response Length", lw.responseData.answerSize),
+				zap.String("Response Content-Type", responseContentType),
 				zap.String("Response Body", lw.responseData.answerBody), // for debug
 			)
 		})

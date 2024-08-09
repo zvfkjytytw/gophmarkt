@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	// luhn "github.com/EClaesson/go-luhn"
+	luhn "github.com/EClaesson/go-luhn"
 
 	storage "github.com/zvfkjytytw/gophmarkt/internal/server/storage"
 )
@@ -29,20 +29,20 @@ func (h *HTTPServer) ordersPut(w http.ResponseWriter, r *http.Request) {
 	}
 
 	orderID := string(body[:])
-	// ok, err = luhn.IsValid(orderID)
-	// if err != nil {
-	// 	h.logger.Sugar().Errorf("failed upload order %s: %v", orderID, err)
-	// 	w.WriteHeader(http.StatusUnprocessableEntity)
-	// 	w.Write([]byte("invalid order number format"))
-	// 	return
-	// }
+	ok, err = luhn.IsValid(orderID)
+	if err != nil {
+		h.logger.Sugar().Errorf("failed upload order %s: %v", orderID, err)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.Write([]byte("invalid order number format"))
+		return
+	}
 
-	// if !ok {
-	// 	h.logger.Sugar().Errorf("failed upload order %s: invalid format", orderID)
-	// 	w.WriteHeader(http.StatusUnprocessableEntity)
-	// 	w.Write([]byte("invalid order number format"))
-	// 	return
-	// }
+	if !ok {
+		h.logger.Sugar().Errorf("failed upload order %s: invalid format", orderID)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.Write([]byte("invalid order number format"))
+		return
+	}
 
 	status, err := h.storage.AddOrder(orderID, login)
 	if err != nil {
