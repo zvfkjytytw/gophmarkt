@@ -27,9 +27,6 @@ func (h *HTTPServer) newRouter() chi.Router {
 		w.Write([]byte("pong"))
 	})
 
-	// mock accrual
-	r.Get("/api/orders/{number}", mockAccrual)
-
 	// user registration
 	r.Post("/api/user/register", h.userRegistration)
 	// user authentication

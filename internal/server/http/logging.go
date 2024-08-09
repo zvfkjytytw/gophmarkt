@@ -67,13 +67,13 @@ func Logging(logger *zap.Logger) func(http.Handler) http.Handler {
 				fmt.Sprintf("Request %v", rID),
 				zap.String("Method", method),
 				zap.String("URI", uri),
-				zap.String("Content-Type", cType),       // for debug
-				zap.String("Request Body", requestBody), // for debug
+				zap.String("Content-Type", cType),
+				zap.String("Request Body", requestBody),
 				zap.String("Duration", fmt.Sprintf("%d ns", rDuration)),
 				zap.Int("Response Code", lw.responseData.statusCode),
 				zap.Int("Response Length", lw.responseData.answerSize),
 				zap.String("Response Content-Type", responseContentType),
-				zap.String("Response Body", lw.responseData.answerBody), // for debug
+				zap.String("Response Body", lw.responseData.answerBody),
 			)
 		})
 	}

@@ -14,7 +14,6 @@ type Balance struct {
 
 const (
 	balanceTable = "gophmarkt.balance"
-	// startBalance = 729.98
 	startBalance = 0
 )
 
