@@ -114,7 +114,7 @@ func (a *Accrual) checkOrder(order *storage.Order) error {
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed request accrual data for order %s: %v", order.Number, err)
+		return fmt.Errorf("failed request accrual data from %s for order %s: %v", a.address, order.Number, err)
 	}
 	defer resp.Body.Close()
 
