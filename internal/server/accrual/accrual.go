@@ -57,7 +57,7 @@ func NewAccrual(address string, storage *storage.PGStorage, logger *zap.Logger) 
 	stop := make(chan struct{})
 
 	return &Accrual{
-		address: address,
+		address: strings.Replace(address, "http//", "", 1),
 		client:  client,
 		storage: storage,
 		logger:  logger,
