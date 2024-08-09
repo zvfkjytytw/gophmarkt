@@ -23,7 +23,7 @@ type AccrualOrder struct {
 }
 
 const (
-	protocol        = "http"
+	// protocol        = "http"
 	accrualHandler  = `/api/orders/%s`
 	accrualInterval = 10
 
@@ -57,7 +57,8 @@ func NewAccrual(address string, storage *storage.PGStorage, logger *zap.Logger) 
 	stop := make(chan struct{})
 
 	return &Accrual{
-		address: strings.Replace(address, "http//", "", 1),
+		// address: strings.Replace(address, "http://", "", 1),
+		address: address,
 		client:  client,
 		storage: storage,
 		logger:  logger,
@@ -105,7 +106,8 @@ func (a *Accrual) checkOrder(order *storage.Order) error {
 	var body string
 	req, err := http.NewRequest(
 		http.MethodGet,
-		fmt.Sprintf("%s://%s%s", protocol, a.address, fmt.Sprintf(accrualHandler, order.Number)),
+		// fmt.Sprintf("%s://%s%s", protocol, a.address, fmt.Sprintf(accrualHandler, order.Number)),
+		fmt.Sprintf("%s%s", a.address, fmt.Sprintf(accrualHandler, order.Number)),
 		strings.NewReader(body),
 	)
 	if err != nil {
