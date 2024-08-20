@@ -50,9 +50,9 @@ func (s *PGStorage) AddDrawal(ctx context.Context, oid, login string, count floa
 		return DrawalAddByOther, fmt.Errorf("Drawal by order %s upload by other", oid)
 	}
 
-	if err != nil {
-		return DrawalOperationFailed, fmt.Errorf("failed check drawal order %s: %v", oid, err)
-	}
+	// if err != nil {
+	// 	return DrawalOperationFailed, fmt.Errorf("failed check drawal order %s: %v", oid, err)
+	// }
 
 	now := time.Now().Format(time.DateTime)
 	// now := time.Now().Format(time.RFC3339)
