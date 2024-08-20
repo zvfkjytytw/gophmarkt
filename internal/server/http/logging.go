@@ -48,6 +48,7 @@ func Logging(logger *zap.Logger) func(http.Handler) http.Handler {
 			method := r.Method
 			uri := r.URL.Path
 			cType := r.Header.Get("Content-Type")
+			authToken := r.Header.Get("Authorization")
 			// read request body
 			bodyBytes, _ := io.ReadAll(r.Body)
 			requestBody := string(bodyBytes)
@@ -67,6 +68,7 @@ func Logging(logger *zap.Logger) func(http.Handler) http.Handler {
 				zap.String("Method", method),
 				zap.String("URI", uri),
 				zap.String("Content-Type", cType),
+				zap.String("Authorization", authToken),
 				zap.String("Request Body", requestBody),
 				zap.String("Duration", fmt.Sprintf("%d ns", rDuration)),
 				zap.Int("Response Code", lw.responseData.statusCode),
