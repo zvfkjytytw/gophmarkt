@@ -46,7 +46,8 @@ var initQuerys = []string{
 		withdrawn double precision           -- drawn points
 	);`,
 	// Set the user as the defining one
-	`ALTER TABLE gophmarkt.balance ADD FOREIGN KEY (login) REFERENCES gophmarkt.users (login);`,
+	// `ALTER TABLE gophmarkt.balance ADD FOREIGN KEY (login) REFERENCES gophmarkt.users (login);`,
+	`ALTER TABLE gophmarkt.balance ADD PRIMARY KEY (login);`,
 	// ORDERS
 	// Table of orders
 	`CREATE TABLE IF NOT EXISTS gophmarkt.orders (
