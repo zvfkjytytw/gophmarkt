@@ -1,6 +1,7 @@
 package gophmarktstorage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -35,24 +36,29 @@ const (
 	OrderOperationFailed
 )
 
-func (s *PGStorage) AddOrder(oid, login string) (OrderOperationResult, error) {
+func (s *PGStorage) AddOrder(ctx context.Context, oid, login string) (OrderOperationResult, error) {
 	query, args, err := sq.Select("login").From(ordersTable).Where(sq.Eq{"order_id": oid}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return OrderOperationFailed, fmt.Errorf("failed generate select login query for order %s: %v", oid, err)
 	}
 
-	row := s.db.QueryRow(query, args...)
+	row := s.db.QueryRowContext(ctx, query, args...)
 	if row.Err() != nil {
 		return OrderOperationFailed, fmt.Errorf("failed execute select login query for order %s: %v", oid, err)
 	}
 
 	var own string
-	if row.Scan(&own) != sql.ErrNoRows {
+	err = row.Scan(&own)
+	if err == nil {
 		if own == login {
 			return OrderAddBefore, errors.New("order already upload")
 		}
 
 		return OrderAddByOther, errors.New("order upload by other")
+	}
+
+	if err != sql.ErrNoRows {
+		return OrderOperationFailed, fmt.Errorf("failed check order %s: %v", oid, err)
 	}
 
 	now := time.Now().Format(time.DateTime)
@@ -67,21 +73,19 @@ func (s *PGStorage) AddOrder(oid, login string) (OrderOperationResult, error) {
 	if err != nil {
 		return OrderOperationFailed, fmt.Errorf("failed init DB transaction: %v", err)
 	}
+	defer tx.Rollback()
 
 	result, err := tx.Exec(query, args...)
 	if err != nil {
-		tx.Rollback()
 		return OrderOperationFailed, fmt.Errorf("failed execute insert query: %v", err)
 	}
 
 	n, err := result.RowsAffected()
 	if err != nil {
-		tx.Rollback()
 		return OrderOperationFailed, fmt.Errorf("failed get count of the affected rows: %v", err)
 	}
 
 	if n != 1 {
-		tx.Rollback()
 		return OrderOperationFailed, fmt.Errorf("affected %d rows instead 1", n)
 	}
 
@@ -92,7 +96,7 @@ func (s *PGStorage) AddOrder(oid, login string) (OrderOperationResult, error) {
 	return OrderAddSuccess, nil
 }
 
-func (s *PGStorage) GetOrders(login string) ([]*Order, error) {
+func (s *PGStorage) GetOrders(ctx context.Context, login string) ([]*Order, error) {
 	orders := make([]*Order, 0)
 	query, args, err := sq.Select("order_id", "status", "date_upload", "accrual").From(ordersTable).
 		Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
@@ -100,7 +104,7 @@ func (s *PGStorage) GetOrders(login string) ([]*Order, error) {
 		return nil, fmt.Errorf("failed generate select orders query for login %s: %v", login, err)
 	}
 
-	rows, err := s.db.Query(query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed execute select orders query for login %s: %v", login, err)
 	}
@@ -110,18 +114,19 @@ func (s *PGStorage) GetOrders(login string) ([]*Order, error) {
 		var upload time.Time
 		var accrual float64
 
-		rows.Scan(&oid, &status, &upload, &accrual)
+		err = rows.Scan(&oid, &status, &upload, &accrual)
+		if err == nil {
+			order := &Order{
+				Number:     oid,
+				Status:     status,
+				UploadedAt: upload,
+			}
+			if accrual > 0 {
+				order.Accrual = accrual
+			}
 
-		order := &Order{
-			Number:     oid,
-			Status:     status,
-			UploadedAt: upload,
+			orders = append(orders, order)
 		}
-		if accrual > 0 {
-			order.Accrual = accrual
-		}
-
-		orders = append(orders, order)
 	}
 
 	if rows.Err() != nil {
@@ -131,7 +136,7 @@ func (s *PGStorage) GetOrders(login string) ([]*Order, error) {
 	return orders, nil
 }
 
-func (s *PGStorage) GetUnprocessedOrders() ([]*Order, error) {
+func (s *PGStorage) GetUnprocessedOrders(ctx context.Context) ([]*Order, error) {
 	orders := make([]*Order, 0)
 	query, args, err := sq.Select("order_id", "status").From(ordersTable).
 		Where(sq.Eq{"status": []OrderStatus{OrderStatusNew, OrderStatusProcessing}}).PlaceholderFormat(sq.Dollar).ToSql()
@@ -139,7 +144,7 @@ func (s *PGStorage) GetUnprocessedOrders() ([]*Order, error) {
 		return nil, fmt.Errorf("failed generate select unprocessed orders query: %v", err)
 	}
 
-	rows, err := s.db.Query(query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed execute select unprocessed orders query: %v", err)
 	}
@@ -147,14 +152,15 @@ func (s *PGStorage) GetUnprocessedOrders() ([]*Order, error) {
 		var oid string
 		var status OrderStatus
 
-		rows.Scan(&oid, &status)
+		err = rows.Scan(&oid, &status)
+		if err == nil {
+			order := &Order{
+				Number: oid,
+				Status: status,
+			}
 
-		order := &Order{
-			Number: oid,
-			Status: status,
+			orders = append(orders, order)
 		}
-
-		orders = append(orders, order)
 	}
 
 	if rows.Err() != nil {
@@ -164,22 +170,27 @@ func (s *PGStorage) GetUnprocessedOrders() ([]*Order, error) {
 	return orders, nil
 }
 
-func (s *PGStorage) UpdateOrder(order *Order) error {
+func (s *PGStorage) UpdateOrder(ctx context.Context, order *Order) error {
 	query, args, err := sq.Select("status", "login").From(ordersTable).
 		Where(sq.Eq{"order_id": order.Number}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return fmt.Errorf("failed generate select status query for order %s: %v", order.Number, err)
 	}
 
-	row := s.db.QueryRow(query, args...)
+	row := s.db.QueryRowContext(ctx, query, args...)
 	if row.Err() != nil {
 		return fmt.Errorf("failed execute select status query for order %s: %v", order.Number, err)
 	}
 
 	var status OrderStatus
 	var login string
-	if row.Scan(&status, &login) == sql.ErrNoRows {
+	err = row.Scan(&status, &login)
+	if err == sql.ErrNoRows {
 		return fmt.Errorf("order %s not found", order.Number)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed update order %s: %v ", order.Number, err)
 	}
 
 	if status == order.Status {
@@ -205,54 +216,54 @@ func (s *PGStorage) UpdateOrder(order *Order) error {
 	if err != nil {
 		return fmt.Errorf("failed init DB transaction: %v", err)
 	}
+	defer tx.Rollback()
 
 	result, err := tx.Exec(query, args...)
 	if err != nil {
-		tx.Rollback()
+
 		return fmt.Errorf("failed execute insert query: %v", err)
 	}
 
 	n, err := result.RowsAffected()
 	if err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed get count of the affected rows: %v", err)
 	}
 
 	if n != 1 {
-		tx.Rollback()
 		return fmt.Errorf("affected %d rows instead 1", n)
 	}
 
 	if order.Status == OrderStatusProcessed {
 		query, args, err := sq.Select("current").From(balanceTable).
-			Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
+			Where(sq.Eq{"login": login}).Suffix("FOR UPDATE").
+			PlaceholderFormat(sq.Dollar).ToSql()
 		if err != nil {
-			tx.Rollback()
 			return fmt.Errorf("failed generate select balance query for login %s: %v", login, err)
 		}
 
-		row := s.db.QueryRow(query, args...)
+		row := s.db.QueryRowContext(ctx, query, args...)
 		if row.Err() != nil {
-			tx.Rollback()
 			return fmt.Errorf("failed execute select balance query for login %s: %v", login, err)
 		}
 
 		var current float64
-		if row.Scan(&current) == sql.ErrNoRows {
-			tx.Rollback()
-			return fmt.Errorf("balance for login %s not found ", login)
+		err = row.Scan(&current)
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("balance for login %s not found", login)
+		}
+
+		if err != nil {
+			return fmt.Errorf("failed get current balance for login %s: %v", login, err)
 		}
 
 		query, args, err = sq.Update(balanceTable).Set("current", current+order.Accrual).
 			Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
 		if err != nil {
-			tx.Rollback()
 			return fmt.Errorf("failed generate update balance query for login %s: %v", login, err)
 		}
 
-		_, err = s.db.Exec(query, args...)
+		_, err = s.db.ExecContext(ctx, query, args...)
 		if err != nil {
-			tx.Rollback()
 			return fmt.Errorf("failed execute update balance query for login %s: %v", login, err)
 		}
 	}

@@ -38,8 +38,6 @@ var initQuerys = []string{
 	);`,
 	// Set the user as the defining one
 	`ALTER TABLE gophmarkt.users ADD PRIMARY KEY (login);`,
-	// Index to optimize the search for user
-	`CREATE UNIQUE INDEX idx_gophmarkt_users ON gophmarkt.users (login);`,
 	// BALANCE
 	// Table of balance
 	`CREATE TABLE IF NOT EXISTS gophmarkt.balance (
@@ -48,9 +46,7 @@ var initQuerys = []string{
 		withdrawn double precision           -- drawn points
 	);`,
 	// Set the user as the defining one
-	`ALTER TABLE gophmarkt.balance ADD PRIMARY KEY (login);`,
-	// Index to optimize the search for balance
-	`CREATE UNIQUE INDEX idx_gophmarkt_balance ON gophmarkt.balance (login);`,
+	`ALTER TABLE gophmarkt.balance ADD FOREIGN KEY (login) REFERENCES gophmarkt.users (login);`,
 	// ORDERS
 	// Table of orders
 	`CREATE TABLE IF NOT EXISTS gophmarkt.orders (

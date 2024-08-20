@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -44,6 +45,7 @@ type Accrual struct {
 	storage *storage.PGStorage
 	logger  *zap.Logger
 	stop    chan struct{}
+	wg      sync.WaitGroup
 }
 
 func NewAccrual(address string, storage *storage.PGStorage, logger *zap.Logger) (*Accrual, error) {
@@ -73,7 +75,7 @@ func (a *Accrual) Start(ctx context.Context) error {
 		case <-a.stop:
 			return nil
 		case <-accrualTicker.C:
-			a.checkOrders()
+			a.checkOrders(ctx)
 		}
 	}
 }
@@ -85,22 +87,25 @@ func (a *Accrual) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (a *Accrual) checkOrders() {
-	orders, err := a.storage.GetUnprocessedOrders()
+func (a *Accrual) checkOrders(ctx context.Context) {
+	orders, err := a.storage.GetUnprocessedOrders(ctx)
 	if err != nil {
 		a.logger.Sugar().Errorf("failed get unprocessed orders: %v", err)
 	}
+	a.wg.Add(len(orders))
 	for _, order := range orders {
 		go func(order *storage.Order) {
-			err := a.checkOrder(order)
+			defer a.wg.Done()
+			err := a.checkOrder(ctx, order)
 			if err != nil {
 				a.logger.Sugar().Errorf("failed check order %s: %v", order.Number, err)
 			}
 		}(order)
 	}
+	a.wg.Wait()
 }
 
-func (a *Accrual) checkOrder(order *storage.Order) error {
+func (a *Accrual) checkOrder(ctx context.Context, order *storage.Order) error {
 	var body string
 	req, err := http.NewRequest(
 		http.MethodGet,
@@ -144,7 +149,7 @@ func (a *Accrual) checkOrder(order *storage.Order) error {
 			UploadedAt: time.Now(),
 		}
 
-		err := a.storage.UpdateOrder(newOrder)
+		err := a.storage.UpdateOrder(ctx, newOrder)
 		if err != nil {
 			return err
 		}

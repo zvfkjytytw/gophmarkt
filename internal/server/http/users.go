@@ -47,7 +47,7 @@ func (h *HTTPServer) userRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := h.storage.AddUser(registryData.Login, registryData.Password)
+	status, err := h.storage.AddUser(r.Context(), registryData.Login, registryData.Password)
 	if err != nil {
 		switch status {
 		case storage.UserExist:
@@ -111,7 +111,7 @@ func (h *HTTPServer) userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := h.storage.CheckUser(authenticationData.Login, authenticationData.Password)
+	status, err := h.storage.CheckUser(r.Context(), authenticationData.Login, authenticationData.Password)
 	if err != nil {
 		switch status {
 		case storage.UserNotFound:

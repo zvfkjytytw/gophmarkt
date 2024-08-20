@@ -51,7 +51,7 @@ func (h *HTTPServer) drawalsPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := h.storage.AddDrawal(drawal.Order, login, drawal.Sum)
+	status, err := h.storage.AddDrawal(r.Context(), drawal.Order, login, drawal.Sum)
 	if err != nil {
 		switch status {
 		case storage.DrawalAddBefore:
@@ -84,7 +84,7 @@ func (h *HTTPServer) drawalsPut(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPServer) drawalsGet(w http.ResponseWriter, r *http.Request) {
 	login := fmt.Sprintf("%v", r.Context().Value(contextAuthUser))
 
-	drawals, err := h.storage.GetDrawals(login)
+	drawals, err := h.storage.GetDrawals(r.Context(), login)
 	if err != nil {
 		h.logger.Sugar().Errorf("failed get drawal orders for %s: %v", login, err)
 		w.WriteHeader(http.StatusInternalServerError)

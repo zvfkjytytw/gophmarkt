@@ -9,7 +9,7 @@ import (
 func (h *HTTPServer) balanceGet(w http.ResponseWriter, r *http.Request) {
 	login := fmt.Sprintf("%v", r.Context().Value(contextAuthUser))
 
-	balance, err := h.storage.GetBalance(login)
+	balance, err := h.storage.GetBalance(r.Context(), login)
 	if err != nil {
 		h.logger.Sugar().Errorf("failed get balance for %s: %v", login, err)
 		w.WriteHeader(http.StatusInternalServerError)

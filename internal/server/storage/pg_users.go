@@ -1,6 +1,7 @@
 package gophmarktstorage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -20,24 +21,29 @@ const (
 	UserOperationFailed
 )
 
-func (s *PGStorage) AddUser(login, password string) (UserOperationResult, error) {
+func (s *PGStorage) AddUser(ctx context.Context, login, password string) (UserOperationResult, error) {
 	query, args, err := sq.Select("login").From(usersTable).Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return UserOperationFailed, fmt.Errorf("failed generate select login query for login %s: %v", login, err)
 	}
 
-	row := s.db.QueryRow(query, args...)
+	row := s.db.QueryRowContext(ctx, query, args...)
 	if row.Err() != nil {
 		return UserOperationFailed, fmt.Errorf("failed execute select login query for login %s: %v", login, err)
 	}
 
 	var user string
-	if row.Scan(&user) != sql.ErrNoRows {
+	err = row.Scan(&user)
+	if err == nil {
 		return UserExist, errors.New("user already exist")
 	}
 
 	if !validatePassword(password) {
 		return UserPasswordWrong, errors.New("unsuitable password")
+	}
+
+	if err != sql.ErrNoRows {
+		return UserOperationFailed, fmt.Errorf("failed check login %s: %v", login, err)
 	}
 
 	query, args, err = sq.Insert(usersTable).Columns("login", "password").Values(login, password).PlaceholderFormat(sq.Dollar).ToSql()
@@ -49,33 +55,29 @@ func (s *PGStorage) AddUser(login, password string) (UserOperationResult, error)
 	if err != nil {
 		return UserOperationFailed, fmt.Errorf("failed init DB transaction: %v", err)
 	}
+	defer tx.Rollback()
 
-	result, err := tx.Exec(query, args...)
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		tx.Rollback()
 		return UserOperationFailed, fmt.Errorf("failed execute insert login, password query: %v", err)
 	}
 
 	n, err := result.RowsAffected()
 	if err != nil {
-		tx.Rollback()
 		return UserOperationFailed, fmt.Errorf("failed get count of the affected rows: %v", err)
 	}
 
 	if n != 1 {
-		tx.Rollback()
 		return UserOperationFailed, fmt.Errorf("affected %d rows instead 1", n)
 	}
 
 	query, args, err = sq.Insert(balanceTable).Columns("login", "current", "withdrawn").Values(login, startBalance, 0).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		tx.Rollback()
 		return UserOperationFailed, fmt.Errorf("failed generate init balance query for login %s: %v", login, err)
 	}
 
-	_, err = s.db.Exec(query, args...)
+	_, err = s.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		tx.Rollback()
 		return UserOperationFailed, fmt.Errorf("failed execute init balance query for login %s: %v", login, err)
 	}
 
@@ -86,34 +88,28 @@ func (s *PGStorage) AddUser(login, password string) (UserOperationResult, error)
 	return UserAddSuccess, nil
 }
 
-func (s *PGStorage) CheckUser(login, password string) (UserOperationResult, error) {
-	query, args, err := sq.Select("login").From(usersTable).Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
+func (s *PGStorage) CheckUser(ctx context.Context, login, password string) (UserOperationResult, error) {
+	query, args, err := sq.Select("login", "password").From(usersTable).Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return UserOperationFailed, fmt.Errorf("failed generate select query for login %s: %v", login, err)
 	}
 
-	row := s.db.QueryRow(query, args...)
+	row := s.db.QueryRowContext(ctx, query, args...)
 	if row.Err() != nil {
 		return UserOperationFailed, fmt.Errorf("failed execute select query for login %s: %v", login, err)
 	}
 
-	var user string
-	if row.Scan(&user) == sql.ErrNoRows {
+	var user, pass string
+	err = row.Scan(&user, &pass)
+
+	if err == sql.ErrNoRows {
 		return UserNotFound, errors.New("user not found")
 	}
 
-	query, args, err = sq.Select("password").From(usersTable).Where(sq.Eq{"login": login}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
-		return UserOperationFailed, fmt.Errorf("failed generate select query for login %s: %v", login, err)
+		return UserOperationFailed, fmt.Errorf("failed check login %s: %v", login, err)
 	}
 
-	row = s.db.QueryRow(query, args...)
-	if row.Err() != nil {
-		return UserOperationFailed, fmt.Errorf("failed execute select query for login %s: %v", login, err)
-	}
-
-	var pass string
-	row.Scan(&pass)
 	if password != pass {
 		return UserPasswordWrong, errors.New("wrong password")
 	}

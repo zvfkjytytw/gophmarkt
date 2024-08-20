@@ -44,7 +44,7 @@ func (h *HTTPServer) ordersPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := h.storage.AddOrder(orderID, login)
+	status, err := h.storage.AddOrder(r.Context(), orderID, login)
 	if err != nil {
 		switch status {
 		case storage.OrderAddBefore:
@@ -72,7 +72,7 @@ func (h *HTTPServer) ordersPut(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPServer) ordersGet(w http.ResponseWriter, r *http.Request) {
 	login := fmt.Sprintf("%v", r.Context().Value(contextAuthUser))
 
-	orders, err := h.storage.GetOrders(login)
+	orders, err := h.storage.GetOrders(r.Context(), login)
 	if err != nil {
 		h.logger.Sugar().Errorf("failed get orders for %s: %v", login, err)
 		w.WriteHeader(http.StatusInternalServerError)
