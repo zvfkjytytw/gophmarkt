@@ -126,6 +126,7 @@ func (a *Accrual) checkOrder(ctx context.Context, order *storage.Order) error {
 	if err != nil {
 		return fmt.Errorf("failed read accrual data for order %s: %v", order.Number, err)
 	}
+	fmt.Printf("Body Bytes: %v", bodyBytes)
 
 	var accrualOrder AccrualOrder
 	err = json.Unmarshal(bodyBytes, &accrualOrder)
