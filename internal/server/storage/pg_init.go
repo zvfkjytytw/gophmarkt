@@ -13,14 +13,14 @@ import (
 
 var initQuerys = []string{
 	// DROP
-	`DROP TABLE IF EXISTS gophmarkt.withdrawals;`,
-	`DROP TABLE IF EXISTS gophmarkt.orders;`,
-	`DROP INDEX IF EXISTS idx_gophmarkt_balance;`,
-	`DROP TABLE IF EXISTS gophmarkt.balance;`,
-	`DROP INDEX IF EXISTS idx_gophmarkt_users;`,
-	`DROP TABLE IF EXISTS gophmarkt.users;`,
-	`DROP TYPE IF EXISTS gophmarkt.order_status;`,
-	`DROP SCHEMA IF EXISTS gophmarkt;`,
+	// `DROP TABLE IF EXISTS gophmarkt.withdrawals;`,
+	// `DROP TABLE IF EXISTS gophmarkt.orders;`,
+	// `DROP INDEX IF EXISTS idx_gophmarkt_balance;`,
+	// `DROP TABLE IF EXISTS gophmarkt.balance;`,
+	// `DROP INDEX IF EXISTS idx_gophmarkt_users;`,
+	// `DROP TABLE IF EXISTS gophmarkt.users;`,
+	// `DROP TYPE IF EXISTS gophmarkt.order_status;`,
+	// `DROP SCHEMA IF EXISTS gophmarkt;`,
 	//CREATE
 	`CREATE SCHEMA IF NOT EXISTS gophmarkt;`,
 	// Type of the order statuses

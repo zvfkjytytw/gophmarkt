@@ -37,7 +37,6 @@ const (
 )
 
 func (s *PGStorage) AddOrder(ctx context.Context, oid, login string) (OrderOperationResult, error) {
-	fmt.Printf("ADD ORDER %s FOR %s", oid, login)
 	query, args, err := sq.Select("login").From(ordersTable).Where(sq.Eq{"order_id": oid}).PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return OrderOperationFailed, fmt.Errorf("failed generate select login query for order %s: %v", oid, err)
@@ -51,7 +50,6 @@ func (s *PGStorage) AddOrder(ctx context.Context, oid, login string) (OrderOpera
 	var own string
 	err = row.Scan(&own)
 	if err == nil {
-		fmt.Printf("ADD ORDER %s ALREADY EXIST", oid)
 		if own == login {
 			return OrderAddBefore, errors.New("order already upload")
 		}
@@ -71,7 +69,6 @@ func (s *PGStorage) AddOrder(ctx context.Context, oid, login string) (OrderOpera
 		return OrderOperationFailed, fmt.Errorf("failed generate insert order query for order %s: %v", oid, err)
 	}
 
-	fmt.Printf("ADD ORDER %s WRITE TO DATABASE", oid)
 	tx, err := s.db.Begin()
 	if err != nil {
 		return OrderOperationFailed, fmt.Errorf("failed init DB transaction: %v", err)
@@ -95,7 +92,6 @@ func (s *PGStorage) AddOrder(ctx context.Context, oid, login string) (OrderOpera
 	if err = tx.Commit(); err != nil {
 		return OrderOperationFailed, fmt.Errorf("failed commit query result: %v", err)
 	}
-	fmt.Printf("ADD ORDER %s WRITE TO DATABASE SUCCESS", oid)
 
 	return OrderAddSuccess, nil
 }
@@ -119,18 +115,16 @@ func (s *PGStorage) GetOrders(ctx context.Context, login string) ([]*Order, erro
 		var accrual float64
 
 		err = rows.Scan(&oid, &status, &upload, &accrual)
-		if err == nil {
-			order := &Order{
-				Number:     oid,
-				Status:     status,
-				UploadedAt: upload,
-			}
-			if accrual > 0 {
-				order.Accrual = accrual
-			}
-
-			orders = append(orders, order)
+		order := &Order{
+			Number:     oid,
+			Status:     status,
+			UploadedAt: upload,
 		}
+		if err == nil && accrual > 0 {
+			order.Accrual = accrual
+		}
+
+		orders = append(orders, order)
 	}
 
 	if rows.Err() != nil {
