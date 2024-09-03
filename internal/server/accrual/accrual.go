@@ -25,7 +25,7 @@ type AccrualOrder struct {
 
 const (
 	accrualHandler  = `/api/orders/%s`
-	accrualInterval = 50
+	accrualInterval = 5
 
 	orderRegistered OrderStatus = "REGISTERED"
 	orderInvalid    OrderStatus = "INVALID"
