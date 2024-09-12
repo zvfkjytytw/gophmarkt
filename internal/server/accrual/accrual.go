@@ -15,6 +15,8 @@ import (
 	storage "github.com/zvfkjytytw/gophmarkt/internal/server/storage"
 )
 
+var tooManyRequests error
+
 type OrderStatus string
 
 type AccrualOrder struct {
@@ -92,15 +94,25 @@ func (a *Accrual) checkOrders(ctx context.Context) {
 	if err != nil {
 		a.logger.Sugar().Errorf("failed get unprocessed orders: %v", err)
 	}
-	a.wg.Add(len(orders))
+
+	enough := false
 	for _, order := range orders {
-		go func(order *storage.Order) {
+		if enough {
+			break
+		}
+		a.wg.Add(1)
+		go func(order *storage.Order, enough *bool) {
 			defer a.wg.Done()
 			err := a.checkOrder(ctx, order)
+			if err == tooManyRequests {
+				a.logger.Sugar().Errorf("too many requests to accrual server")
+				*enough = true
+			}
 			if err != nil {
 				a.logger.Sugar().Errorf("failed check order %s: %v", order.Number, err)
 			}
-		}(order)
+		}(order, &enough)
+		time.Sleep(100 * time.Millisecond)
 	}
 	a.wg.Wait()
 }
@@ -121,6 +133,10 @@ func (a *Accrual) checkOrder(ctx context.Context, order *storage.Order) error {
 		return fmt.Errorf("failed request accrual data from %s for order %s: %v", a.address, order.Number, err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return tooManyRequests
+	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
