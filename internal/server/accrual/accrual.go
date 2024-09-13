@@ -97,6 +97,9 @@ func (a *Accrual) checkOrders(ctx context.Context) {
 
 	enough := false
 	for _, order := range orders {
+		if ctx.Err() != nil {
+			break
+		}
 		if enough {
 			break
 		}
