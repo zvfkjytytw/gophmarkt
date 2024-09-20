@@ -3,6 +3,7 @@ package gophmarktaccrual
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,8 +14,6 @@ import (
 
 	storage "github.com/zvfkjytytw/gophmarkt/internal/server/storage"
 )
-
-var tooManyRequests error
 
 type OrderStatus string
 
@@ -36,6 +35,7 @@ const (
 	orderProcessed  OrderStatus = "PROCESSED"
 )
 
+var errTooManyRequests = errors.New("too many requests")
 var accrualToStorage = map[OrderStatus]storage.OrderStatus{
 	orderInvalid:    storage.OrderStatusInvalid,
 	orderProcessing: storage.OrderStatusProcessing,
@@ -103,7 +103,7 @@ func (a *Accrual) checkOrders(ctx context.Context) {
 		}
 
 		err := a.checkOrder(ctx, order)
-		if err == tooManyRequests {
+		if err == errTooManyRequests {
 			a.logger.Error("too many requests to accrual server")
 			time.Sleep(waitAfterToMany * time.Second)
 			return
@@ -134,7 +134,7 @@ func (a *Accrual) checkOrder(ctx context.Context, order *storage.Order) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return tooManyRequests
+		return errTooManyRequests
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
