@@ -25,8 +25,10 @@ type AccrualOrder struct {
 }
 
 const (
-	accrualHandler  = `/api/orders/%s`
-	accrualInterval = 5
+	accrualHandler      = `/api/orders/%s`
+	accrualInterval     = 5000
+	waitAfterToMany     = 1000
+	waitBetweenRequests = 50
 
 	orderRegistered OrderStatus = "REGISTERED"
 	orderInvalid    OrderStatus = "INVALID"
@@ -67,7 +69,7 @@ func NewAccrual(address string, storage *storage.PGStorage, logger *zap.Logger) 
 }
 
 func (a *Accrual) Start(ctx context.Context) error {
-	accrualTicker := time.NewTicker(accrualInterval * time.Second)
+	accrualTicker := time.NewTicker(accrualInterval * time.Millisecond)
 	defer accrualTicker.Stop()
 
 	for {
@@ -87,94 +89,6 @@ func (a *Accrual) Stop(ctx context.Context) error {
 	return nil
 }
 
-// func (a *Accrual) checkOrders(ctx context.Context) {
-// 	orders, err := a.storage.GetUnprocessedOrders(ctx)
-// 	if err != nil {
-// 		a.logger.Sugar().Errorf("failed get unprocessed orders: %v", err)
-// 	}
-
-// 	enough := false
-// 	for _, order := range orders {
-// 		if ctx.Err() != nil {
-// 			return
-// 		}
-// 		if enough {
-// 			break
-// 		}
-// 		a.wg.Add(1)
-// 		go func(order *storage.Order, enough *bool) {
-// 			defer a.wg.Done()
-// 			err := a.checkOrder(ctx, order)
-// 			if err == tooManyRequests {
-// 				a.logger.Sugar().Errorf("too many requests to accrual server")
-// 				*enough = true
-// 			}
-// 			if err != nil {
-// 				a.logger.Sugar().Errorf("failed check order %s: %v", order.Number, err)
-// 			}
-// 		}(order, &enough)
-// 		time.Sleep(100 * time.Millisecond)
-// 	}
-// 	a.wg.Wait()
-// }
-
-// func (a *Accrual) checkOrder(ctx context.Context, order *storage.Order) error {
-// 	var body string
-// 	req, err := http.NewRequest(
-// 		http.MethodGet,
-// 		fmt.Sprintf("%s%s", a.address, fmt.Sprintf(accrualHandler, order.Number)),
-// 		strings.NewReader(body),
-// 	)
-// 	if err != nil {
-// 		return fmt.Errorf("failed init request for order %s: %v", order.Number, err)
-// 	}
-
-// 	resp, err := a.client.Do(req)
-// 	if err != nil {
-// 		return fmt.Errorf("failed request accrual data from %s for order %s: %v", a.address, order.Number, err)
-// 	}
-// 	defer resp.Body.Close()
-
-// 	if resp.StatusCode == http.StatusTooManyRequests {
-// 		return tooManyRequests
-// 	}
-
-// 	bodyBytes, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		return fmt.Errorf("failed read accrual data for order %s: %v", order.Number, err)
-// 	}
-
-// 	var accrualOrder AccrualOrder
-// 	err = json.Unmarshal(bodyBytes, &accrualOrder)
-// 	if err != nil {
-// 		return fmt.Errorf("failed unmarshal accrual data for order %s: %v", order.Number, err)
-// 	}
-
-// 	if accrualOrder.Order != order.Number {
-// 		return fmt.Errorf("orders numbers is not equal send %s receive %s ", order.Number, accrualOrder.Order)
-// 	}
-
-// 	if accrualOrder.Status == orderRegistered {
-// 		return nil
-// 	}
-
-// 	if accrualToStorage[accrualOrder.Status] != order.Status {
-// 		newOrder := &storage.Order{
-// 			Number:     accrualOrder.Order,
-// 			Status:     accrualToStorage[accrualOrder.Status],
-// 			Accrual:    accrualOrder.Accrual,
-// 			UploadedAt: time.Now(),
-// 		}
-
-// 		err := a.storage.UpdateOrder(ctx, newOrder)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }
-
 func (a *Accrual) checkOrders(ctx context.Context) {
 	orders, err := a.storage.GetUnprocessedOrders(ctx)
 	if err != nil {
@@ -191,13 +105,14 @@ func (a *Accrual) checkOrders(ctx context.Context) {
 		err := a.checkOrder(ctx, order)
 		if err == tooManyRequests {
 			a.logger.Error("too many requests to accrual server")
+			time.Sleep(waitAfterToMany * time.Second)
 			return
 		}
 		if err != nil {
 			a.logger.Sugar().Errorf("failed check order %s: %v", order.Number, err)
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(waitBetweenRequests * time.Millisecond)
 	}
 }
 
