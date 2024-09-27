@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS gophmarkt.withdrawals;
+DROP TABLE IF EXISTS gophmarkt.orders;
+DROP INDEX IF EXISTS idx_gophmarkt_balance;
+DROP TABLE IF EXISTS gophmarkt.balance;
+DROP INDEX IF EXISTS idx_gophmarkt_users;
+DROP TABLE IF EXISTS gophmarkt.users;
+DROP TYPE IF EXISTS gophmarkt.order_status;
+DROP SCHEMA IF EXISTS gophmarkt;
+DELETE FROM schema_migrations WHERE dirty=true;
